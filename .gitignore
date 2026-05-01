@@ -9,4 +9,5 @@ out
 .vercel
 .turbo
 next-env.d.ts
+tsconfig.tsbuildinfo
 drizzle/meta
