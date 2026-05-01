@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { conversions } from "@/db/schema";
-import { anthropic, MODEL } from "@/lib/anthropic";
+import { genai, MODEL } from "@/lib/gemini";
 import { MODERN_SYSTEM_PROMPT, MODERN_USER_PROMPT_PREFIX } from "@/lib/prompts";
 import { stripHtmlFences } from "@/lib/utils";
 
@@ -31,41 +31,30 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       let collected = "";
 
       try {
-        const response = anthropic.messages.stream({
+        const response = await genai.models.generateContentStream({
           model: MODEL,
-          max_tokens: 8192,
-          system: [
-            {
-              type: "text",
-              text: MODERN_SYSTEM_PROMPT,
-              cache_control: { type: "ephemeral" },
-            },
-          ],
-          messages: [
+          contents: [
             {
               role: "user",
-              content: [
+              parts: [
+                { inlineData: { mimeType: conv.imageMime, data: imageBase64 } },
                 {
-                  type: "image",
-                  source: {
-                    type: "base64",
-                    media_type: conv.imageMime as "image/png" | "image/jpeg" | "image/webp" | "image/gif",
-                    data: imageBase64,
-                  },
-                },
-                {
-                  type: "text",
                   text: `${MODERN_USER_PROMPT_PREFIX}${conv.retroHtml}\n--- END RETRO HTML ---`,
                 },
               ],
             },
           ],
+          config: {
+            systemInstruction: MODERN_SYSTEM_PROMPT,
+            maxOutputTokens: 8192,
+          },
         });
 
-        for await (const event of response) {
-          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-            collected += event.delta.text;
-            send({ type: "delta", text: event.delta.text });
+        for await (const chunk of response) {
+          const text = chunk.text;
+          if (text) {
+            collected += text;
+            send({ type: "delta", text });
           }
         }
 

@@ -13,7 +13,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.92.0",
+    "@google/genai": "^1.51.0",
     "@neondatabase/serverless": "^1.1.0",
     "@vercel/blob": "^2.3.3",
     "clsx": "^2.1.1",

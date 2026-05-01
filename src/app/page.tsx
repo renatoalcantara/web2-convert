@@ -11,7 +11,7 @@ export default function HomePage() {
             <span className="text-[var(--accent)]">veja ele renascer.</span>
           </h1>
           <p className="text-lg text-[var(--muted)] leading-relaxed">
-            primeiro o claude reproduz fielmente, com tabelas, marquees e cores berrantes.
+            primeiro a IA reproduz fielmente, com tabelas, marquees e cores berrantes.
             depois reimagina como o mesmo site seria se fosse feito hoje.
           </p>
           <p className="text-sm text-[var(--muted)]">
@@ -33,7 +33,7 @@ export default function HomePage() {
           Você manda um print de um site dos anos 2000 (até 8MB).
         </Step>
         <Step n="2" title="retrô fiel">
-          Claude analisa o print e gera HTML 4.01 com tabelas, fontes Times New Roman,
+          O modelo analisa o print e gera HTML 4.01 com tabelas, fontes Times New Roman,
           marquees e tudo que define a era.
         </Step>
         <Step n="3" title="releitura 2026">

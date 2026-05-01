@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Mande um print de um site dos anos 2000 e veja ele renascer: primeiro reproduzido fielmente, depois reimaginado como seria hoje.",
   openGraph: {
     title: "web2-convert",
-    description: "Print → site retrô fiel → releitura moderna. Feito com Claude.",
+    description: "Print → site retrô fiel → releitura moderna. Feito com Gemini 2.5 Flash.",
     type: "website",
   },
 };
@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="flex-1">{children}</main>
         <footer className="border-t border-[var(--border)] mt-16">
           <div className="max-w-6xl mx-auto px-6 py-6 text-xs text-[var(--muted)] flex justify-between">
-            <span>built with claude opus 4.7 + next.js</span>
+            <span>built with gemini 2.5 flash + next.js</span>
             <span>brincadeira de portfólio</span>
           </div>
         </footer>

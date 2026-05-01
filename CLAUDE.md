@@ -6,8 +6,8 @@ Guia para assistentes de IA (e humanos) trabalhando neste repositório.
 
 **web2-convert** é uma "brincadeira" de portfólio: o usuário envia um print (jpg/png/webp/gif) de um site dos anos 2000 e a aplicação faz duas coisas em sequência, em streaming:
 
-1. **Reprodução fiel** — Claude reconstrói o site em HTML 4.01 com tabelas, `<font>`, `<marquee>`, paleta saturada e tudo que define a estética da época.
-2. **Releitura moderna (2026)** — em seguida, Claude reimagina o mesmo site (mesma intenção, mesmo conteúdo) como se fosse desenhado e construído hoje: HTML5 semântico, Grid/Flex, design tokens, responsivo, acessível.
+1. **Reprodução fiel** — o modelo reconstrói o site em HTML 4.01 com tabelas, `<font>`, `<marquee>`, paleta saturada e tudo que define a estética da época.
+2. **Releitura moderna (2026)** — em seguida, o modelo reimagina o mesmo site (mesma intenção, mesmo conteúdo) como se fosse desenhado e construído hoje: HTML5 semântico, Grid/Flex, design tokens, responsivo, acessível.
 
 A entrega final inclui um **slider antes/depois** comparando as duas versões, **galeria pública** com tudo que foi feito e **galeria pessoal** (escopada por cookie) para o usuário guardar suas conversões.
 
@@ -17,13 +17,13 @@ A entrega final inclui um **slider antes/depois** comparando as duas versões, *
 |---|---|
 | Framework | Next.js 15 (App Router) + React 19 + TypeScript estrito |
 | Estilo | Tailwind CSS 3 (sem shadcn/ui ainda — componentes próprios em `src/components`) |
-| LLM | Anthropic SDK · modelo **`claude-opus-4-7`** (vision + streaming + prompt caching) |
+| LLM | Google GenAI SDK · modelo **`gemini-2.5-flash`** (vision + streaming, free tier) |
 | Banco | Postgres serverless (Neon) via **Drizzle ORM** |
 | Storage de imagem | **Vercel Blob** (`@vercel/blob`) |
 | Identidade | Cookie HttpOnly `w2c_owner` (UUID); sem auth no MVP |
 | Deploy alvo | Vercel |
 
-A escolha de Opus 4.7 é deliberada: a fidelidade visual da reprodução retrô e o gosto da releitura moderna são o produto. Não trocar por Haiku/Sonnet sem combinar.
+A escolha de **Gemini 2.5 Flash** é pragmática: free tier generoso permite hospedar a brincadeira no Vercel sem custo. O ideal seria `claude-opus-4-7` (qualidade superior, especialmente na releitura moderna) — está no roadmap quando houver budget. Não trocar de modelo (downgrade pra Flash-Lite, Pro, etc.) sem combinar.
 
 ## Estrutura do código
 
@@ -53,7 +53,7 @@ src/
     index.ts                   # cliente Drizzle + Neon
     schema.ts                  # tabela `conversions` + enum de status
   lib/
-    anthropic.ts               # cliente do SDK + constante MODEL
+    gemini.ts                  # cliente do Google GenAI SDK + constante MODEL
     prompts.ts                 # system + user prompts (retro e modern)
     owner.ts                   # cookie do dono (read/write)
     utils.ts                   # cn(), stripHtmlFences()
@@ -87,12 +87,13 @@ A persistência do HTML após streaming permite que `/c/[id]` seja **sempre revi
 
 ## Convenções importantes
 
-### Modelo Claude
+### Modelo
 
-- Sempre `claude-opus-4-7` via `MODEL` em `src/lib/anthropic.ts`. Não inline o nome do modelo em outros arquivos.
-- **Prompt caching obrigatório**: o `system` é enviado como array com `cache_control: { type: "ephemeral" }`. Os prompts em `src/lib/prompts.ts` são longos por design — o caching paga o tradeoff.
-- **Streaming sempre**: usamos `anthropic.messages.stream(...)` com SSE para o cliente. Nunca substituir por `messages.create` não-streaming sem motivo (a UX do "vai aparecendo" é parte da brincadeira).
-- `max_tokens: 8192` é o suficiente para sites únicos. Se algum dia precisar mais, atualize nos dois route handlers.
+- Sempre `gemini-2.5-flash` via `MODEL` em `src/lib/gemini.ts`. Não inline o nome do modelo em outros arquivos.
+- **Streaming sempre**: usamos `genai.models.generateContentStream(...)` e re-emitimos como SSE pro cliente. Nunca substituir por chamada não-streaming sem motivo (a UX do "vai aparecendo" é parte da brincadeira).
+- `maxOutputTokens: 8192` é o suficiente para sites únicos. Se algum dia precisar mais, atualize nos dois route handlers.
+- A `systemInstruction` no `config` recebe o system prompt direto (string). O conteúdo da mensagem de usuário é um array de `parts` (`inlineData` para a imagem em base64 + `text` para o prompt).
+- Quando migrar pra Anthropic Opus 4.7 no futuro: trocar o cliente em `src/lib/gemini.ts` e ajustar o formato de mensagens nos dois route handlers; os prompts em `src/lib/prompts.ts` são portáveis entre os dois providers.
 
 ### Prompts
 
@@ -148,7 +149,7 @@ npm run db:studio    # GUI do Drizzle
 
 Copie `.env.example` para `.env.local` e preencha:
 
-- `ANTHROPIC_API_KEY` — chave do console Anthropic
+- `GEMINI_API_KEY` — chave do Google AI Studio (https://aistudio.google.com/apikey, free tier)
 - `DATABASE_URL` — Postgres do Neon (com `?sslmode=require`)
 - `BLOB_READ_WRITE_TOKEN` — token do Vercel Blob
 
@@ -156,6 +157,7 @@ Sem qualquer uma delas, a aplicação falha no boot (intencional — falha cedo)
 
 ## Roadmap curto (não implementado ainda)
 
+- **Migrar pra Anthropic `claude-opus-4-7`** quando tiver budget — qualidade superior é o objetivo final
 - Toggle privado/público por conversão (schema já tem `isPublic`, falta UI)
 - Edição manual do título de uma conversão
 - "Regerar moderna" reusando a mesma retrô (variante da releitura)
@@ -165,8 +167,8 @@ Sem qualquer uma delas, a aplicação falha no boot (intencional — falha cedo)
 
 ## Notas para o assistente
 
-- **Não invente URLs** para Anthropic, Vercel ou Neon docs — pergunte ou peça WebFetch.
-- **Não troque o modelo** sem pedir. `claude-opus-4-7` é decisão de produto.
+- **Não invente URLs** para Google AI Studio, Vercel ou Neon docs — pergunte ou peça WebFetch.
+- **Não troque o modelo** sem pedir. `gemini-2.5-flash` é decisão atual (provisória até budget pra Opus 4.7).
 - Quando alterar prompts em `src/lib/prompts.ts`, **renderize uma conversão de teste** antes de afirmar que está bom — a saída do modelo é o produto.
 - Mudanças no schema **exigem** rodar `npm run db:generate` e commitar a migration junto.
 - Se for tocar no `BeforeAfterSlider` ou no sandbox dos iframes, lembre que segurança > UX bonitinha.
